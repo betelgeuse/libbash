@@ -21,8 +21,13 @@ options
 {
 	backtrack	= true;
 	output	= AST;
+#ifdef OUTPUT_C
+	language	= C;
+	ASTLabelType	= pANTLR3_BASE_TREE;
+#else
 	language	= Java;
 	ASTLabelType	= CommonTree;
+#endif
 }
 tokens{
 	ARG;

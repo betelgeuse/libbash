@@ -140,9 +140,7 @@ cgrammar.run: libbash.g
 	$(AM_V_at)mv $@.tmp $@
 
 libbash.g: bashast/bashast.g
-	$(AM_V_at)sed -e 's/ASTLabelType	= CommonTree;/ASTLabelType	= pANTLR3_BASE_TREE;/g' \
-				  -e 's/language	= Java;/language	= C;/g' \
-				  -e 's/grammar bashast;/grammar libbash;/g' $< > $@
+	$(AM_V_at)$(CC) -E -x c -D OUTPUT_C bashast/bashast.g $< > $@
 
 # Avoid initializing C++ type to NULL by sed, variables whose name
 # starts with libbash_ will be stripped
