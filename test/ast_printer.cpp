@@ -26,6 +26,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <boost/program_options.hpp>
@@ -46,6 +47,37 @@ static void print_ast(std::istream& input, bool silent, bool dot)
     std::cout << parser.get_dot_graph() << std::endl;
   else
     std::cout << parser.get_string_tree() << std::endl;
+}
+
+static inline std::string token_mapper(std::unordered_map<ANTLR3_INT32, std::string> mapper,
+                                       ANTLR3_INT32 token)
+{
+  return mapper[token];
+}
+
+static void build_token_map(std::unordered_map<ANTLR3_INT32, std::string>& mapper,
+                            const std::string& path)
+{
+  std::ifstream token_file(path);
+  std::string line;
+  while(std::getline(token_file, line))
+  {
+    auto equal = line.find("=");
+    if(equal != std::string::npos)
+      mapper[boost::lexical_cast<ANTLR3_INT32>(line.substr(equal + 1, line.size()))]
+        = line.substr(0, equal);
+  }
+}
+
+static inline void print_token(std::istream& input, const std::string& token_path)
+{
+  parser_builder parser(input);
+  std::unordered_map<ANTLR3_INT32, std::string> mapper;
+  build_token_map(mapper, token_path);
+  std::cout << parser.get_tokens(std::bind(&token_mapper,
+                                           mapper,
+                                           std::placeholders::_1))
+  << std::endl;
 }
 
 static void print_files(const std::vector<std::string>& files,
@@ -74,6 +106,7 @@ static inline void print_cin(std::function<void(std::istream&)> printer)
   printer(std::cin);
 }
 
+
 int main(int argc, char** argv)
 {
   std::vector<std::string> files;
@@ -87,6 +120,7 @@ int main(int argc, char** argv)
      "will use standard input")
     ("expr,e", po::value<std::string>(), "one line of script")
     ("dot,d", "print graphviz doc file instead of tree string if -s is not specified")
+    ("token,t", po::value<std::string>(), "print all tokens instead of AST")
     ("name,n", "When using files as input scripts, print out file names")
     ("silent,s", "do not print any AST")
   ;
@@ -101,10 +135,16 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  auto printer = std::bind(&print_ast,
-                           std::placeholders::_1,
-                           vm.count("silent"),
-                           vm.count("dot"));
+  std::function<void(std::istream&)> printer;
+  if(vm.count("token"))
+    printer = std::bind(&print_token,
+                        std::placeholders::_1,
+                        vm["token"].as<std::string>());
+  else
+    printer = std::bind(&print_ast,
+                        std::placeholders::_1,
+                        vm.count("silent"),
+                        vm.count("dot"));
 
   if(vm.count("files"))
     print_files(vm["files"].as<std::vector<std::string>>(),
