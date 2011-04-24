@@ -30,6 +30,9 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/range/adaptor/filtered.hpp>
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm/find.hpp>
 
 #include "libbash.h"
 
@@ -89,16 +92,15 @@ int main(int argc, char** argv)
     }
   }
 
-  // Print defined phases
-  std::set<std::string> defined_phases;
-  for(auto iter = functions.begin(); iter != functions.end(); ++iter)
-  {
-    auto iter_phase = phases.find(*iter);
-    if(iter_phase != phases.end())
-      defined_phases.insert(iter_phase->second);
-  }
+  using namespace boost::adaptors;
 
-  std::cout << format(string % ' ', defined_phases) << std::endl;
+  auto defined_phases = phases | filtered([&functions] (const std::pair<std::string, std::string>& phase) -> bool {
+    return boost::find(functions, phase.first) != functions.end();
+  }) | map_values;
+
+  std::set<std::string> sorted_phases(defined_phases.begin(), defined_phases.end());
+
+  std::cout << format(string % ' ', sorted_phases) << std::endl;
 
   // Print empty lines
   std::cout << std::endl << std::endl << std::endl << std::endl << std::endl;
