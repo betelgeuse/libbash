@@ -580,9 +580,6 @@ esc_char:	ESC (DIGIT DIGIT? DIGIT?|LETTER ALPHANUM ALPHANUM?|.);
 // TOKENS/LEXER RULES
 //****************
 
-COMMENT
-	:	(BLANK|EOL) '#' ~('\n'|'\r')* {$channel=HIDDEN;}
-	;
 //Bash "reserved words"
 BANG	:	'!';
 CASE	:	'case';
@@ -649,8 +646,12 @@ DQUOTE	:	'"';
 SQUOTE	:	'\'';
 COMMA	:	',';
 //Because bash isn't exactly whitespace dependent... need to explicitly handle blanks
-BLANK	:	(' '|'\t')+;
-EOL	:	('\r'?'\n')+ ;
+//We handle comments through here so that it's possible to do BLANK?
+//Otherwise you would end up with token sequences like BLANK COMMENT BLANK
+BLANK	:	(' '|'\t')+ COMMENT?;
+EOL	:	('\r'?'\n')+ COMMENT?;
+fragment
+COMMENT :	'#' ~('\n'|'\r')*;
 //some fragments for creating words...
 DIGIT	:	'0'..'9';
 NUMBER	:	DIGIT DIGIT+;
